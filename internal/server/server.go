@@ -24,6 +24,18 @@ var DefaultOption = &Option{
 	CodecType:   codec.GobType,
 }
 
+/*
+client → (conn) → HandleConn
+					├─ Accept Conn
+					├─ Handle conn, read Option (codec)
+					└─ serveCodec  (decode request and encode response)
+						└─ for each request:
+							├─ readRequestHeader
+							├─ readRequest (decode argv)
+							├─ handleRequest (log + construct reply)
+							└─ sendResponse
+
+*/
 // -------------------- Server --------------------
 type Server struct{}
 
@@ -60,19 +72,21 @@ func (server *Server) HandleConn(conn net.Conn) {
 		return
 	}
 	if option.MagicNumber != MagicNumber {
-		log.Println("rpc server: invalid magic number %x", option.MagicNumber)
+		log.Printf("rpc server: invalid magic number %x", option.MagicNumber)
 		return
 	}
 
 	// Get the corresponding encoding and decoding function
 	f := codec.NewCodeFuncMap[option.CodecType]
 	if f == nil {
-		log.Println("rpc server: invalid codec type %s", option.CodecType)
+		log.Printf("rpc server: invalid codec type %s", option.CodecType)
 		return
 	}
 	server.serveCodec(f(conn))
 }
+
 var invalidRequest = struct{}{}
+
 func (server *Server) serveCodec(cc codec.Codec) {
 	sending := new(sync.Mutex)
 	wg := new(sync.WaitGroup)
@@ -103,8 +117,8 @@ type Request struct {
 
 func (server *Server) readRequestHeader(cc codec.Codec) (*codec.Header, error) {
 	var h codec.Header
-	if err := cc.ReadHeader(&h); err != nil{
-		if err != io.EOF && err != io.ErrUnexpectedEOF{
+	if err := cc.ReadHeader(&h); err != nil {
+		if err != io.EOF && err != io.ErrUnexpectedEOF {
 			log.Println("rpc server: read header error:", err)
 		}
 		return nil, err
@@ -114,7 +128,7 @@ func (server *Server) readRequestHeader(cc codec.Codec) (*codec.Header, error) {
 
 func (server *Server) readRequest(cc codec.Codec) (*Request, error) {
 	h, err := server.readRequestHeader(cc)
-	if err != nil{
+	if err != nil {
 		return nil, err
 	}
 
@@ -122,7 +136,7 @@ func (server *Server) readRequest(cc codec.Codec) (*Request, error) {
 		header: h,
 	}
 	req.argv = reflect.New(reflect.TypeOf(""))
-	if err = cc.ReadBody(req.argv.Interface()); err != nil{
+	if err = cc.ReadBody(req.argv.Interface()); err != nil {
 		log.Println("rpc server: read argv err:", err)
 	}
 
