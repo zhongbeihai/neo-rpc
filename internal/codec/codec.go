@@ -2,12 +2,18 @@ package codec
 
 import "io"
 
+/*
+Standart RPC call: err = client.Call("Arithy.Multiply", args, &reply)
+Abstract parameters and return values in the **body**
+Abstract other value in the **Header**
+*/
 type Header struct {
 	ServiceMethod string // format "Service.Method"
 	Seq           uint64 // sequence number of request, chosen by clients
 	Err           string
 }
 
+// Abstract encoding and decoding function
 type Codec interface {
 	io.Closer
 	ReadHeader(h *Header) error
@@ -24,6 +30,7 @@ const (
 	JsonType Type = "application/json"
 )
 
+// mapping Type to NewCodecFunc
 var NewCodeFuncMap map[Type]NewCodecFunc
 
 func init() {

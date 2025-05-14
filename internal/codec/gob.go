@@ -7,6 +7,7 @@ import (
 	"log"
 )
 
+// implement Codec interface
 type GobCodec struct {
 	conn    io.ReadWriteCloser
 	buf     *bufio.Writer
