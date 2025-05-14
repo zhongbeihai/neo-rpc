@@ -10,7 +10,6 @@ import (
 	"reflect"
 	"sync"
 )
-
 // -------------------- Option --------------------
 const MagicNumber = 0x3bef5c
 
